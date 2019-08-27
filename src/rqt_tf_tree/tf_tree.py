@@ -33,8 +33,11 @@
 from __future__ import division
 import os
 
-import rospy
-import rospkg
+#import rospy
+#import rospkg
+
+import rclpy
+from qt_gui.ros_package_helper import get_package_path
 
 from tf2_msgs.srv import FrameGraph
 import tf2_ros
@@ -62,6 +65,8 @@ class RosTfTree(QObject):
 
         self.setObjectName('RosTfTree')
 
+        self._node = context.node
+
         self._current_dotcode = None
 
         self._widget = QWidget()
@@ -70,15 +75,15 @@ class RosTfTree(QObject):
         self.dotcode_factory = PydotFactory()
         # self.dotcode_factory = PygraphvizFactory()
         # generator builds rosgraph
-        self.dotcode_generator = RosTfTreeDotcodeGenerator()
+        self.dotcode_generator = RosTfTreeDotcodeGenerator(self._node)
         self.tf2_buffer_ = tf2_ros.Buffer()
         self.tf2_listener_ = tf2_ros.TransformListener(self.tf2_buffer_)
 
         # dot_to_qt transforms into Qt elements using dot layout
         self.dot_to_qt = DotToQtGenerator()
 
-        rp = rospkg.RosPack()
-        ui_file = os.path.join(rp.get_path('rqt_tf_tree'), 'resource', 'RosTfTree.ui')
+        #rp = rospkg.RosPack()
+        ui_file = os.path.join(get_package_path('rqt_tf_tree'), 'share', 'rqt_tf_tree', 'resource', 'RosTfTree.ui')
         loadUi(ui_file, self._widget, {'InteractiveGraphicsView': InteractiveGraphicsView})
         self._widget.setObjectName('RosTfTreeUi')
         if context.serial_number() > 1:
@@ -145,8 +150,12 @@ class RosTfTree(QObject):
     def _generate_dotcode(self):
         force_refresh = self._force_refresh
         self._force_refresh = False
-        rospy.wait_for_service('~tf2_frames')
-        tf2_frame_srv = rospy.ServiceProxy('~tf2_frames', FrameGraph)
+
+        #rospy.wait_for_service('~tf2_frames')
+        tf2_frame_srv = self._node.create_client(FrameGraph, '~tf2_frames')
+        while not tf2_frame_srv.wait_for_service(timeout_sec=1.0):
+            print("aaa")
+        
         return self.dotcode_generator.generate_dotcode(dotcode_factory=self.dotcode_factory,
                                                        tf2_frame_srv=tf2_frame_srv,
                                                        force_refresh=force_refresh)

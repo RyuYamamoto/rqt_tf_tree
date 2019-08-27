@@ -34,12 +34,13 @@ from __future__ import with_statement, print_function
 
 import time
 import rospy
+#import rclpy
 import yaml
 
 
 class RosTfTreeDotcodeGenerator(object):
 
-    def __init__(self, initial_listen_duration=1):
+    def __init__(self, node,initial_listen_duration=1):
         """
         :param initial_listen_duration: how many secs to listen to tf initially.
         """
@@ -52,11 +53,12 @@ class RosTfTreeDotcodeGenerator(object):
         self.ranksep = None
         self.graph = None
         self.dotcode_factory = None
+        self.node = node
 
     def generate_dotcode(self,
                          dotcode_factory,
                          tf2_frame_srv,
-                         timer=rospy.Time,
+                         timer=self.node.get_clock()
                          yaml_parser=yaml,
                          rank='same',   # None, same, min, max, source, sink
                          ranksep=0.2,   # vertical distance between layers
